@@ -1563,3 +1563,23 @@ def test_run_optimization_epoch_checkpoint_dir_alongside_out_prefix(tmpdir, mock
 
     assert os.path.isdir(os.path.join(str(subdir), "checkpoints"))
     assert not os.path.isdir(os.path.join(str(tmpdir), "checkpoints"))
+
+
+def test_get_pathfinder_posteriors_creates_h5(tmpdir):
+    """get_pathfinder_posteriors produces an HDF5 posterior file."""
+    model = LaplaceModel(num_genotype=4)
+    ri, map_params = _laplace_map_params(model)
+
+    out_prefix = str(tmpdir.join("pathfinder"))
+    ri.get_pathfinder_posteriors(
+        map_params=map_params,
+        out_prefix=out_prefix,
+        num_posterior_samples=10,
+        sampling_batch_size=5,
+        forward_batch_size=4,
+        pathfinder_samples=10,
+        maxiter=5,
+    )
+
+    assert os.path.exists(f"{out_prefix}_posterior.h5")
+

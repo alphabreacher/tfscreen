@@ -12,7 +12,10 @@ def sample_posterior(config_file,
                      num_posterior_samples=10000,
                      sampling_batch_size=100,
                      forward_batch_size=512,
-                     hessian_chunk_size=64):
+                     hessian_chunk_size=64,
+                     method="laplace",
+                     pathfinder_samples=200,
+                     pathfinder_maxiter=30):
     """
     Draw posterior samples from an existing MAP, SVI, or NUTS checkpoint.
 
@@ -83,16 +86,28 @@ def sample_posterior(config_file,
         chk_params = temp_svi.optim.get_params(chk_data["svi_state"].optim_state)
 
         if any("_auto_loc" in k for k in chk_params):
-            # MAP checkpoint: Hessian-based Laplace approximation.
-            print("Detected MAP checkpoint. Drawing Laplace posterior samples...", flush=True)
-            ri.get_laplace_posteriors(
-                map_params=chk_params,
-                out_prefix=ri_prefix,
-                num_posterior_samples=num_posterior_samples,
-                sampling_batch_size=sampling_batch_size,
-                forward_batch_size=forward_batch_size,
-                hessian_chunk_size=hessian_chunk_size,
-            )
+            if method.lower() == "pathfinder":
+                print("Detected MAP checkpoint. Drawing Pathfinder posterior samples...", flush=True)
+                ri.get_pathfinder_posteriors(
+                    map_params=chk_params,
+                    out_prefix=ri_prefix,
+                    num_posterior_samples=num_posterior_samples,
+                    sampling_batch_size=sampling_batch_size,
+                    forward_batch_size=forward_batch_size,
+                    pathfinder_samples=pathfinder_samples,
+                    maxiter=pathfinder_maxiter,
+                )
+            else:
+                # MAP checkpoint: Hessian-based Laplace approximation.
+                print("Detected MAP checkpoint. Drawing Laplace posterior samples...", flush=True)
+                ri.get_laplace_posteriors(
+                    map_params=chk_params,
+                    out_prefix=ri_prefix,
+                    num_posterior_samples=num_posterior_samples,
+                    sampling_batch_size=sampling_batch_size,
+                    forward_batch_size=forward_batch_size,
+                    hessian_chunk_size=hessian_chunk_size,
+                )
         else:
             # SVI checkpoint: rebuild the guide object then restore the saved
             # variational state directly — no optimization loop needed.
@@ -119,7 +134,10 @@ def main():
                                        "num_posterior_samples": int,
                                        "sampling_batch_size": int,
                                        "forward_batch_size": int,
-                                       "hessian_chunk_size": int})
+                                       "hessian_chunk_size": int,
+                                       "method": str,
+                                       "pathfinder_samples": int,
+                                       "pathfinder_maxiter": int})
 
 
 if __name__ == "__main__":

@@ -197,7 +197,12 @@ def _assemble_condition_array(param, grp, cond_rep_map):
 
     arr = np.full(len(sorted_map), np.nan, dtype=float)
     for _, r in grp.iterrows():
-        key = tuple(str(r[c]) for c in label_cols)
+        def _clean_str(v):
+            s = str(v)
+            if s.endswith('.0'):
+                return s[:-2]
+            return s
+        key = tuple(_clean_str(r[c]) for c in label_cols)
         pos = key_to_pos.get(key)
         if pos is None:
             raise ValueError(

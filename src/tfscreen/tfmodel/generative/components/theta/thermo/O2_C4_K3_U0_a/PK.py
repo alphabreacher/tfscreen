@@ -211,22 +211,24 @@ def define_model(name: str,
             f"{name}_sigma_d_ln_K_E",
             dist.HalfNormal(priors.theta_sigma_d_ln_K_E_scale))
 
-    # ------------------------------------------------------------------
-    # Mutation delta offsets for K_op and K_HL: shape (num_mutation,)
-    # ------------------------------------------------------------------
-    with pyro.plate(f"{name}_mutation_scalar_plate", num_mut, dim=-1):
-        d_K_op_off = pyro.sample(
-            f"{name}_d_ln_K_op_offset", dist.Normal(0.0, 1.0))
-        d_K_HL_off = pyro.sample(
-            f"{name}_d_ln_K_HL_offset", dist.Normal(0.0, 1.0))
+    if num_mut > 0:
+        with pyro.plate(f"{name}_mutation_scalar_plate", num_mut, dim=-1):
+            d_K_op_off = pyro.sample(
+                f"{name}_d_ln_K_op_offset", dist.Normal(0.0, 1.0))
+            d_K_HL_off = pyro.sample(
+                f"{name}_d_ln_K_HL_offset", dist.Normal(0.0, 1.0))
 
-    # ------------------------------------------------------------------
-    # Mutation delta offsets for K_E: shape (T, num_mutation)
-    # ------------------------------------------------------------------
-    with pyro.plate(f"{name}_titrant_mut_outer_plate", T, dim=-2):
-        with pyro.plate(f"{name}_mutation_plate", num_mut, dim=-1):
-            d_K_E_off = pyro.sample(
-                f"{name}_d_ln_K_E_offset", dist.Normal(0.0, 1.0))
+        # ------------------------------------------------------------------
+        # Mutation delta offsets for K_E: shape (T, num_mutation)
+        # ------------------------------------------------------------------
+        with pyro.plate(f"{name}_titrant_mut_outer_plate", T, dim=-2):
+            with pyro.plate(f"{name}_mutation_plate", num_mut, dim=-1):
+                d_K_E_off = pyro.sample(
+                    f"{name}_d_ln_K_E_offset", dist.Normal(0.0, 1.0))
+    else:
+        d_K_op_off = jnp.zeros((0,))
+        d_K_HL_off = jnp.zeros((0,))
+        d_K_E_off = jnp.zeros((T, 0))
 
     # ------------------------------------------------------------------
     # Optional epistasis — regularised horseshoe prior
